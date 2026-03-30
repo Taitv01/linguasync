@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vercel
+.vercel/
+
+# Logs
+*.log
+
+# Scoring data (project root files - not part of MVP)
+scoring_results.json
+calc_viability.py
+01_Bao_Cao_Kha_Thi_MMO_2026.md
+02_Ma_Tran_Cham_Diem.csv

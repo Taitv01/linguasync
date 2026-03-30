@@ -1,0 +1,201 @@
+{
+  "name": "Video Localization Service — Automation Pipeline",
+  "description": "Make.com blueprint for automating the video localization service workflow. Import this into Make.com to set up the core automation.",
+  "version": "1.0.0",
+  "created": "2026-03-30",
+  "author": "MMO 2026 Feasibility Study",
+
+  "modules": [
+    {
+      "id": "trigger_email",
+      "type": "gmail:watchEmails",
+      "name": "📧 Trigger: New Client Email",
+      "description": "Monitors Gmail for new project requests with video attachments or Google Drive links",
+      "config": {
+        "label": "Video Localization Requests",
+        "filter": "subject:(localization OR dubbing OR translation OR lồng tiếng OR dịch video)",
+        "includeAttachments": true,
+        "maxResults": 5,
+        "pollingInterval": 5
+      },
+      "outputs": ["senderEmail", "senderName", "subject", "body", "attachments", "receivedDate"]
+    },
+    {
+      "id": "parse_request",
+      "type": "openai:createCompletion",
+      "name": "🤖 AI: Parse Client Request",
+      "description": "Uses GPT-5.4 nano to extract structured data from client email",
+      "dependsOn": ["trigger_email"],
+      "config": {
+        "model": "gpt-5.4-nano",
+        "systemPrompt": "You are a video localization project intake assistant. Extract the following from the client email:\n1. client_name\n2. company_name\n3. source_language\n4. target_languages (array)\n5. video_url_or_attachment\n6. estimated_duration_minutes\n7. special_requirements\n8. urgency (normal/rush)\n\nReturn ONLY a JSON object with these fields.",
+        "userPrompt": "{{trigger_email.body}}",
+        "temperature": 0.1,
+        "maxTokens": 500
+      },
+      "outputs": ["parsedProject"]
+    },
+    {
+      "id": "create_notion_task",
+      "type": "notion:createDatabaseItem",
+      "name": "📋 Notion: Create Project Task",
+      "description": "Creates a new task in the Notion Projects database",
+      "dependsOn": ["parse_request"],
+      "config": {
+        "databaseId": "{{NOTION_PROJECTS_DATABASE_ID}}",
+        "properties": {
+          "Project Name": {
+            "title": "Localization — {{parse_request.parsedProject.client_name}} — {{parse_request.parsedProject.source_language}} → {{parse_request.parsedProject.target_languages}}"
+          },
+          "Status": {
+            "select": "📥 Received"
+          },
+          "Client Name": {
+            "richText": "{{parse_request.parsedProject.client_name}}"
+          },
+          "Client Email": {
+            "email": "{{trigger_email.senderEmail}}"
+          },
+          "Source Language": {
+            "select": "{{parse_request.parsedProject.source_language}}"
+          },
+          "Target Languages": {
+            "multiSelect": "{{parse_request.parsedProject.target_languages}}"
+          },
+          "Duration (min)": {
+            "number": "{{parse_request.parsedProject.estimated_duration_minutes}}"
+          },
+          "Urgency": {
+            "select": "{{parse_request.parsedProject.urgency}}"
+          },
+          "Received Date": {
+            "date": "{{trigger_email.receivedDate}}"
+          },
+          "Special Requirements": {
+            "richText": "{{parse_request.parsedProject.special_requirements}}"
+          }
+        }
+      },
+      "outputs": ["notionPageId", "notionPageUrl"]
+    },
+    {
+      "id": "calculate_price",
+      "type": "openai:createCompletion",
+      "name": "💰 AI: Calculate Quote",
+      "description": "Calculates price based on duration, languages, and complexity",
+      "dependsOn": ["parse_request"],
+      "config": {
+        "model": "gpt-5.4-nano",
+        "systemPrompt": "You are a pricing calculator for video localization services. Calculate the total price based on:\n\nPRICING RULES:\n- Base rate: $50 for first 5 minutes, $15 per additional minute\n- Per language: multiply base by number of target languages\n- Multi-language discount: 3+ languages = 15% off\n- Rush surcharge: +30%\n- Lip-sync required: +$20 per language\n\nReturn JSON: { \"base_price\": X, \"per_language_price\": X, \"discount\": X, \"rush_fee\": X, \"total_price\": X, \"turnaround_days\": X, \"breakdown_text\": \"human-readable breakdown\" }",
+        "userPrompt": "Duration: {{parse_request.parsedProject.estimated_duration_minutes}} minutes\nTarget languages: {{parse_request.parsedProject.target_languages}}\nUrgency: {{parse_request.parsedProject.urgency}}\nSpecial requirements: {{parse_request.parsedProject.special_requirements}}",
+        "temperature": 0.0,
+        "maxTokens": 400
+      },
+      "outputs": ["quote"]
+    },
+    {
+      "id": "send_quote_email",
+      "type": "gmail:sendEmail",
+      "name": "📤 Gmail: Send Quote",
+      "description": "Sends auto-generated quote to the client",
+      "dependsOn": ["calculate_price", "create_notion_task"],
+      "config": {
+        "to": "{{trigger_email.senderEmail}}",
+        "subject": "Re: {{trigger_email.subject}} — Báo Giá Dịch Vụ Bản Địa Hóa / Your Localization Quote",
+        "htmlBody": "<html><body style='font-family: Arial, sans-serif; color: #333;'><h2>📋 Báo Giá / Quotation</h2><p>Kính gửi / Dear {{parse_request.parsedProject.client_name}},</p><p>Cảm ơn anh/chị đã liên hệ. Dưới đây là báo giá cho dự án của anh/chị:</p><p>Thank you for reaching out. Here is the quote for your project:</p><hr/><p><strong>📹 Dự án / Project:</strong> {{parse_request.parsedProject.source_language}} → {{parse_request.parsedProject.target_languages}}</p><p><strong>⏱️ Độ dài / Duration:</strong> {{parse_request.parsedProject.estimated_duration_minutes}} phút/minutes</p><p><strong>💰 Tổng giá / Total:</strong> ${{calculate_price.quote.total_price}}</p><p><strong>📅 Thời gian giao / Turnaround:</strong> {{calculate_price.quote.turnaround_days}} ngày/days</p><hr/><p><strong>Chi tiết / Breakdown:</strong></p><p>{{calculate_price.quote.breakdown_text}}</p><hr/><p>Để xác nhận, vui lòng reply email này với '<strong>CONFIRMED</strong>'.</p><p>To confirm, please reply with '<strong>CONFIRMED</strong>'.</p><br/><p>Trân trọng / Best regards,<br/>[YOUR NAME]<br/>[YOUR TITLE]</p></body></html>",
+        "replyTo": "{{trigger_email.messageId}}"
+      }
+    },
+    {
+      "id": "update_notion_quoted",
+      "type": "notion:updateDatabaseItem",
+      "name": "📝 Notion: Update Status → Quoted",
+      "description": "Updates the Notion task status after sending quote",
+      "dependsOn": ["send_quote_email"],
+      "config": {
+        "pageId": "{{create_notion_task.notionPageId}}",
+        "properties": {
+          "Status": {
+            "select": "💰 Quoted"
+          },
+          "Quoted Price": {
+            "number": "{{calculate_price.quote.total_price}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "create_drive_folder",
+      "type": "googleDrive:createFolder",
+      "name": "📁 Google Drive: Create Project Folder",
+      "description": "Creates a client folder in Google Drive for file exchange",
+      "dependsOn": ["create_notion_task"],
+      "config": {
+        "parentFolderId": "{{GOOGLE_DRIVE_PROJECTS_FOLDER_ID}}",
+        "folderName": "{{parse_request.parsedProject.client_name}} — {{trigger_email.receivedDate}}",
+        "subfolders": ["01_Source_Video", "02_Translated_Scripts", "03_Dubbed_Output", "04_Final_Delivery"]
+      },
+      "outputs": ["folderId", "folderUrl"]
+    },
+    {
+      "id": "slack_notification",
+      "type": "slack:sendMessage",
+      "name": "🔔 Slack: Notify New Project",
+      "description": "Optional: sends notification to Slack/Telegram",
+      "dependsOn": ["create_notion_task", "calculate_price"],
+      "config": {
+        "channel": "#new-projects",
+        "text": "🎬 *New Localization Project*\n\n• Client: {{parse_request.parsedProject.client_name}}\n• Languages: {{parse_request.parsedProject.source_language}} → {{parse_request.parsedProject.target_languages}}\n• Duration: {{parse_request.parsedProject.estimated_duration_minutes}} min\n• Quote: ${{calculate_price.quote.total_price}}\n• Notion: {{create_notion_task.notionPageUrl}}\n• Drive: {{create_drive_folder.folderUrl}}"
+      }
+    }
+  ],
+
+  "connections_required": [
+    {
+      "service": "Gmail",
+      "type": "OAuth2",
+      "note": "Kết nối tài khoản Gmail business của bạn"
+    },
+    {
+      "service": "Notion",
+      "type": "OAuth2 / Internal Integration",
+      "note": "Tạo Notion Integration tại https://www.notion.so/my-integrations và chia sẻ database với integration"
+    },
+    {
+      "service": "OpenAI",
+      "type": "API Key",
+      "note": "Sử dụng GPT-5.4 nano để tiết kiệm chi phí (~$0.20/1M tokens input)"
+    },
+    {
+      "service": "Google Drive",
+      "type": "OAuth2",
+      "note": "Kết nối Google Drive để tạo folder dự án tự động"
+    },
+    {
+      "service": "Slack (Optional)",
+      "type": "OAuth2 / Webhook",
+      "note": "Có thể thay thế bằng Telegram Bot nếu muốn"
+    }
+  ],
+
+  "environment_variables": {
+    "NOTION_PROJECTS_DATABASE_ID": "REPLACE_WITH_YOUR_NOTION_DATABASE_ID",
+    "GOOGLE_DRIVE_PROJECTS_FOLDER_ID": "REPLACE_WITH_YOUR_GOOGLE_DRIVE_FOLDER_ID",
+    "OPENAI_API_KEY": "REPLACE_WITH_YOUR_OPENAI_API_KEY"
+  },
+
+  "workflow_summary": {
+    "trigger": "New email matching localization keywords",
+    "steps": [
+      "1. Email received → parsed by AI",
+      "2. Notion task created automatically",
+      "3. Google Drive project folder created",
+      "4. Price quote calculated by AI",
+      "5. Quote email sent to client",
+      "6. Notion status updated to 'Quoted'",
+      "7. Slack/Telegram notification sent"
+    ],
+    "estimated_credits_per_run": 7,
+    "estimated_api_cost_per_run": "$0.001"
+  }
+}

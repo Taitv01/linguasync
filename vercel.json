@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/dashboard$", "dest": "/dashboard/index.html" },
+    { "src": "/dashboard/(.*)", "dest": "/dashboard/$1" },
+    { "src": "^/$", "dest": "/website/index.html" },
+    { "src": "/(.*\\.css)", "dest": "/website/$1" },
+    { "src": "/(.*\\.js)", "dest": "/website/$1" },
+    { "src": "/(.*)", "dest": "/website/$1" }
+  ]
+}
