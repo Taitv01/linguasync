@@ -1,14 +1,18 @@
 {
-    "version": 2,
-    "builds": [
-          { "src": "api/**/*.js", "use": "@vercel/node" },
-          { "src": "website/**/*", "use": "@vercel/static" },
-          { "src": "dashboard/**/*", "use": "@vercel/static" }
-    ],
-    "routes": [
-          { "src": "/api/(.*)", "dest": "/api/$1" },
-          { "src": "/dashboard(.*)", "dest": "/dashboard/$1" },
-          { "src": "^/$", "dest": "/website/index.html" },
-          { "src": "/(.*)", "dest": "/website/$1" }
-    ]
+  "version": 2,
+  "builds": [
+    { "src": "api/**/*.js", "use": "@vercel/node" },
+    { "src": "website/**/*", "use": "@vercel/static" },
+    { "src": "dashboard/**/*", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/dashboard/css/(.*)", "dest": "/dashboard/css/$1" },
+    { "src": "/dashboard/js/(.*)", "dest": "/dashboard/js/$1" },
+    { "src": "/dashboard$", "dest": "/dashboard/index.html" },
+    { "src": "/dashboard/$", "dest": "/dashboard/index.html" },
+    { "src": "/dashboard/(.*)", "dest": "/dashboard/$1" },
+    { "src": "^/$", "dest": "/website/index.html" },
+    { "src": "/(.*)", "dest": "/website/$1" }
+  ]
 }
