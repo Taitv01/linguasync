@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ============================================================
   // COUNTER ANIMATION (Hero Stats)
   // ============================================================
-  const counterElements = document.querySelectorAll('.hero-stat .number[data-count]');
+  const counterElements = document.querySelectorAll('[data-count]');
 
   function animateCounter(el) {
     const target = parseInt(el.dataset.count);
