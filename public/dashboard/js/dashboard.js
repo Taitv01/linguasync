@@ -1,10 +1,13 @@
 /**
  * LinguaSync Dashboard — App Logic
- * Kanban board, CRUD, analytics — all persisted to localStorage
+ * Kanban board with Drag & Drop, CRUD, Search/Filter, Export CSV, Analytics
+ * All persisted to localStorage
  */
 
 const STORAGE_KEY = 'linguasync_projects';
 const STATUSES = ['received', 'quoted', 'in-progress', 'qc', 'delivered', 'paid'];
+let currentSearch = '';
+let currentFilter = 'all';
 
 // ============================================================
 // DATA LAYER (localStorage)
@@ -35,21 +38,49 @@ function loadSampleData() {
 function genId() { return 'p_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5); }
 
 // ============================================================
+// SEARCH & FILTER
+// ============================================================
+function getFilteredProjects() {
+  let projects = getProjects();
+
+  // Search
+  if (currentSearch) {
+    const q = currentSearch.toLowerCase();
+    projects = projects.filter(p =>
+      p.client.toLowerCase().includes(q) ||
+      p.email.toLowerCase().includes(q) ||
+      p.targets.toLowerCase().includes(q) ||
+      p.source.toLowerCase().includes(q) ||
+      (p.notes && p.notes.toLowerCase().includes(q))
+    );
+  }
+
+  // Filter urgency
+  if (currentFilter !== 'all') {
+    projects = projects.filter(p => p.urgency === currentFilter);
+  }
+
+  return projects;
+}
+
+// ============================================================
 // KANBAN BOARD
 // ============================================================
 function renderKanban() {
-  const projects = getProjects();
-  
+  const projects = getFilteredProjects();
+
   STATUSES.forEach(status => {
-    const col = document.getElementById('col' + capitalize(status.replace('-', '')));
-    const countEl = document.getElementById('count' + capitalize(status.replace('-', '')));
+    const colId = 'col' + capitalize(status.replace('-', ''));
+    const countId = 'count' + capitalize(status.replace('-', ''));
+    const col = document.getElementById(colId);
+    const countEl = document.getElementById(countId);
     if (!col) return;
-    
+
     const items = projects.filter(p => p.status === status);
     countEl.textContent = items.length;
-    
+
     col.innerHTML = items.map(p => `
-      <div class="kanban-card" data-id="${p.id}" onclick="openProject('${p.id}')">
+      <div class="kanban-card" data-id="${p.id}" draggable="true" onclick="openProject('${p.id}')">
         <div class="card-client">${p.client}</div>
         <div class="card-langs">${p.source} → ${p.targets}</div>
         <div class="card-meta">
@@ -59,6 +90,9 @@ function renderKanban() {
         </div>
       </div>
     `).join('');
+
+    // Attach drag events to new cards
+    col.querySelectorAll('.kanban-card').forEach(attachDragEvents);
   });
 }
 
@@ -66,13 +100,108 @@ function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-// Column ID mapping
-function getColumnId(status) {
-  const map = {
-    'received': 'Received', 'quoted': 'Quoted', 'in-progress': 'Inprogress',
-    'qc': 'Qc', 'delivered': 'Delivered', 'paid': 'Paid'
-  };
-  return map[status] || '';
+// ============================================================
+// DRAG & DROP
+// ============================================================
+let draggedCardId = null;
+
+function attachDragEvents(card) {
+  card.addEventListener('dragstart', (e) => {
+    draggedCardId = card.dataset.id;
+    card.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', card.dataset.id);
+    // Slight delay to allow the ghost image
+    setTimeout(() => card.style.opacity = '0.4', 0);
+  });
+
+  card.addEventListener('dragend', () => {
+    card.classList.remove('dragging');
+    card.style.opacity = '';
+    draggedCardId = null;
+    // Remove all drop highlights
+    document.querySelectorAll('.kanban-column').forEach(col => col.classList.remove('drop-target'));
+  });
+}
+
+function initDropZones() {
+  document.querySelectorAll('.kanban-column').forEach(column => {
+    column.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      column.classList.add('drop-target');
+    });
+
+    column.addEventListener('dragleave', (e) => {
+      // Only remove if leaving the column entirely
+      if (!column.contains(e.relatedTarget)) {
+        column.classList.remove('drop-target');
+      }
+    });
+
+    column.addEventListener('drop', (e) => {
+      e.preventDefault();
+      column.classList.remove('drop-target');
+
+      const cardId = e.dataTransfer.getData('text/plain') || draggedCardId;
+      if (!cardId) return;
+
+      const newStatus = column.dataset.status;
+      if (!newStatus) return;
+
+      // Update project status
+      const projects = getProjects();
+      const project = projects.find(p => p.id === cardId);
+      if (project && project.status !== newStatus) {
+        project.status = newStatus;
+        saveProjects(projects);
+        renderAll();
+        showNotification(`Moved "${project.client}" to ${newStatus.replace('-', ' ').toUpperCase()}`);
+      }
+    });
+  });
+}
+
+function showNotification(msg) {
+  const notif = document.createElement('div');
+  notif.className = 'toast-notification show';
+  notif.textContent = msg;
+  document.body.appendChild(notif);
+  setTimeout(() => {
+    notif.classList.remove('show');
+    setTimeout(() => notif.remove(), 300);
+  }, 2500);
+}
+
+// ============================================================
+// EXPORT CSV
+// ============================================================
+function exportCSV() {
+  const projects = getProjects();
+  const headers = ['Client', 'Email', 'Source Language', 'Target Languages', 'Duration (min)', 'Price (USD)', 'Status', 'Urgency', 'Notes', 'Created Date'];
+
+  const rows = projects.map(p => [
+    `"${p.client}"`,
+    `"${p.email}"`,
+    `"${p.source}"`,
+    `"${p.targets}"`,
+    p.duration,
+    p.price,
+    `"${p.status}"`,
+    `"${p.urgency}"`,
+    `"${(p.notes || '').replace(/"/g, '""')}"`,
+    `"${p.created}"`,
+  ]);
+
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }); // BOM for Excel UTF-8
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `linguasync_projects_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showNotification('📥 CSV exported successfully!');
 }
 
 // ============================================================
@@ -81,7 +210,7 @@ function getColumnId(status) {
 function renderClients() {
   const projects = getProjects();
   const clientMap = {};
-  
+
   projects.forEach(p => {
     if (!clientMap[p.email]) {
       clientMap[p.email] = { name: p.client, email: p.email, projects: 0, revenue: 0, lastDate: '' };
@@ -108,7 +237,7 @@ function renderClients() {
 // ============================================================
 function renderAnalytics() {
   const projects = getProjects();
-  
+
   const totalRevenue = projects.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.price, 0);
   const totalProjects = projects.length;
   const uniqueClients = new Set(projects.map(p => p.email)).size;
@@ -122,7 +251,7 @@ function renderAnalytics() {
   // Bar chart — revenue by month
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
   const monthData = [0, 0, 0, 0, 0, 0];
-  
+
   projects.filter(p => p.status === 'paid').forEach(p => {
     const month = new Date(p.created).getMonth();
     if (month >= 0 && month < 6) monthData[month] += p.price;
@@ -217,7 +346,7 @@ function deleteProject() {
   const id = document.getElementById('projectId').value;
   if (!id) return;
   if (!confirm('Delete this project? This cannot be undone.')) return;
-  
+
   let projects = getProjects();
   projects = projects.filter(p => p.id !== id);
   saveProjects(projects);
@@ -240,6 +369,10 @@ function switchView(view) {
     item.classList.toggle('active', item.dataset.view === view);
   });
 
+  // Show/hide search bar based on view
+  const searchBar = document.getElementById('searchBar');
+  if (searchBar) searchBar.style.display = view === 'kanban' ? 'flex' : 'none';
+
   if (view === 'clients') renderClients();
   if (view === 'analytics') renderAnalytics();
 }
@@ -258,6 +391,7 @@ function renderAll() {
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   renderAll();
+  initDropZones();
 
   // Nav
   document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
@@ -273,6 +407,33 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cancelBtn').addEventListener('click', closeModal);
   document.getElementById('projectForm').addEventListener('submit', saveProject);
   document.getElementById('deleteProjectBtn').addEventListener('click', deleteProject);
+
+  // Export CSV
+  const exportBtn = document.getElementById('exportCsvBtn');
+  if (exportBtn) exportBtn.addEventListener('click', exportCSV);
+
+  // Search
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    let debounceTimer;
+    searchInput.addEventListener('input', (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        currentSearch = e.target.value;
+        renderKanban();
+      }, 250);
+    });
+  }
+
+  // Urgency filter
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      renderKanban();
+    });
+  });
 
   // Sidebar toggle (mobile)
   document.getElementById('sidebarToggle').addEventListener('click', () => {

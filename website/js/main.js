@@ -160,14 +160,24 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.disabled = true;
 
     try {
-      const formData = new FormData(contactForm);
-      const response = await fetch(contactForm.action, {
+      const payload = {
+        name: document.getElementById('contactName').value,
+        email: document.getElementById('contactEmail').value,
+        video_url: document.getElementById('contactVideoUrl').value,
+        target_languages: document.getElementById('contactLangs').value,
+        budget: document.getElementById('contactBudget').value,
+        message: document.getElementById('contactMessage').value,
+      };
+
+      const response = await fetch('/api/contact', {
         method: 'POST',
-        body: formData,
-        headers: { 'Accept': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
-      if (response.ok) {
+      const result = await response.json();
+
+      if (response.ok && result.success) {
         showToast(
           lang === 'vi' 
             ? '✅ Đã gửi thành công! Chúng tôi sẽ phản hồi trong 2 giờ.' 
@@ -176,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
         );
         contactForm.reset();
       } else {
-        throw new Error('Form submission failed');
+        throw new Error(result.error || 'Form submission failed');
       }
     } catch (error) {
       showToast(
@@ -226,5 +236,59 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { threshold: 0.3 });
 
   sections.forEach(section => navObserver.observe(section));
+
+  // ============================================================
+  // COUNTER ANIMATION (Hero Stats)
+  // ============================================================
+  const counterElements = document.querySelectorAll('.hero-stat .number[data-count]');
+
+  function animateCounter(el) {
+    const target = parseInt(el.dataset.count);
+    const suffix = el.dataset.suffix || '';
+    const duration = 2000;
+    const startTime = performance.now();
+
+    function easeOutQuad(t) {
+      return t * (2 - t);
+    }
+
+    function update(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easedProgress = easeOutQuad(progress);
+      const current = Math.round(easedProgress * target);
+
+      el.textContent = current + suffix;
+
+      if (progress < 1) {
+        requestAnimationFrame(update);
+      }
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  if (counterElements.length > 0) {
+    const counterObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          animateCounter(entry.target);
+          counterObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.5 });
+
+    counterElements.forEach(el => counterObserver.observe(el));
+  }
+
+  // ============================================================
+  // ZALO FLOAT BUTTON — Entrance Animation
+  // ============================================================
+  const zaloFloat = document.getElementById('zaloFloat');
+  if (zaloFloat) {
+    setTimeout(() => {
+      zaloFloat.classList.add('visible');
+    }, 2000);
+  }
 
 });

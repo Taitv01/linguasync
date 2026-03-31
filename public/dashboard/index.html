@@ -33,7 +33,19 @@
         <button class="sidebar-toggle" id="sidebarToggle">☰</button>
         <h1 id="viewTitle">📋 Project Board</h1>
       </div>
+      <div class="topbar-center" id="searchBar">
+        <div class="search-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Search clients, languages..." autocomplete="off">
+        </div>
+        <div class="filter-group">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="normal">🟢 Normal</button>
+          <button class="filter-btn" data-filter="rush">⚡ Rush</button>
+        </div>
+      </div>
       <div class="topbar-right">
+        <button class="btn btn-outline" id="exportCsvBtn" title="Export CSV">📥 Export</button>
         <button class="btn btn-primary" id="newProjectBtn">+ New Project</button>
       </div>
     </header>

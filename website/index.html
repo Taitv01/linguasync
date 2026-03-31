@@ -66,15 +66,15 @@
         </div>
         <div class="hero-stats">
           <div class="hero-stat">
-            <div class="number">50+</div>
+            <div class="number" data-count="50" data-suffix="+">0+</div>
             <div class="label" data-en="Languages Supported" data-vi="Ngôn ngữ hỗ trợ">Languages Supported</div>
           </div>
           <div class="hero-stat">
-            <div class="number">24h</div>
+            <div class="number" data-count="24" data-suffix="h">0h</div>
             <div class="label" data-en="Average Turnaround" data-vi="Thời gian hoàn thành TB">Average Turnaround</div>
           </div>
           <div class="hero-stat">
-            <div class="number">99%</div>
+            <div class="number" data-count="99" data-suffix="%">0%</div>
             <div class="label" data-en="QC Pass Rate" data-vi="Tỷ lệ đạt QC">QC Pass Rate</div>
           </div>
         </div>
@@ -538,7 +538,7 @@
 
         <div class="contact-form-card">
           <h3 data-en="📩 Send Us Your Project" data-vi="📩 Gửi Dự Án Của Bạn">📩 Send Us Your Project</h3>
-          <form id="contactForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+          <form id="contactForm">
             <div class="form-row">
               <div class="form-group">
                 <label data-en="Your Name" data-vi="Họ tên">Your Name</label>
@@ -635,6 +635,19 @@
 
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
+
+  <!-- Floating Zalo Chat Button -->
+  <a href="https://zalo.me/0967686821" target="_blank" rel="noopener" class="zalo-float" id="zaloFloat" aria-label="Chat Zalo">
+    <div class="zalo-float-pulse"></div>
+    <div class="zalo-float-icon">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" width="28" height="28">
+        <path d="M24 4C12.954 4 4 12.954 4 24s8.954 20 20 20 20-8.954 20-20S35.046 4 24 4z" fill="#0068FF"/>
+        <path d="M33.2 15.8H14.8c-1.1 0-2 .9-2 2v12.4c0 1.1.9 2 2 2h7l4.6 3.4c.4.3 1 .1 1-.4v-3h5.8c1.1 0 2-.9 2-2V17.8c0-1.1-.9-2-2-2z" fill="white"/>
+        <text x="24" y="27" text-anchor="middle" font-size="9" font-weight="bold" fill="#0068FF" font-family="Arial">Zalo</text>
+      </svg>
+    </div>
+    <span class="zalo-float-label" data-en="Chat now" data-vi="Chat ngay">Chat now</span>
+  </a>
 
   <script src="js/calculator.js"></script>
   <script src="js/main.js"></script>

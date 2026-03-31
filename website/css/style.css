@@ -1620,3 +1620,88 @@ ul { list-style: none; }
 
 .toast.success { border-color: var(--success); }
 .toast.error { border-color: var(--error); }
+
+/* ============================================================
+   FLOATING ZALO CHAT BUTTON
+   ============================================================ */
+.zalo-float {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #0068FF, #0055cc);
+  color: white;
+  padding: 12px 20px 12px 14px;
+  border-radius: 50px;
+  text-decoration: none;
+  box-shadow: 0 4px 20px rgba(0, 104, 255, 0.4), 0 0 0 0 rgba(0, 104, 255, 0.4);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: translateY(100px) scale(0.8);
+  opacity: 0;
+}
+
+.zalo-float.visible {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.zalo-float:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 32px rgba(0, 104, 255, 0.5);
+  color: white;
+}
+
+.zalo-float-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: white;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.zalo-float-label {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.zalo-float-pulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50px;
+  background: rgba(0, 104, 255, 0.3);
+  animation: zaloPulse 2s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes zaloPulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.15); opacity: 0; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+/* Move toast to left side to avoid overlap with Zalo button */
+.toast {
+  right: auto;
+  left: 30px;
+}
+
+/* Mobile: compact Zalo button */
+@media (max-width: 768px) {
+  .zalo-float {
+    padding: 14px;
+    border-radius: 50%;
+    bottom: 20px;
+    right: 20px;
+  }
+  .zalo-float-label { display: none; }
+  .zalo-float-icon { width: 28px; height: 28px; }
+}

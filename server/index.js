@@ -28,8 +28,8 @@ app.use(cors({
 // Serve the website from /website directory
 app.use(express.static(path.join(__dirname, '..', 'website')));
 
-// Serve the dashboard from /dashboard
-app.use('/dashboard', express.static(path.join(__dirname, '..', 'dashboard')));
+// Serve the dashboard from /public/dashboard
+app.use('/dashboard', express.static(path.join(__dirname, '..', 'public', 'dashboard')));
 
 // --- API Routes ---
 app.use('/api', apiRoutes);
@@ -40,7 +40,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'dashboard', 'index.html'));
+  res.sendFile(path.join(__dirname, '..', 'public', 'dashboard', 'index.html'));
 });
 
 // --- Error Handler ---
