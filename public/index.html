@@ -357,6 +357,23 @@
         </div>
       </div>
 
+      <!-- Featured Video Demo -->
+      <div class="portfolio-demo reveal">
+        <div class="portfolio-demo-player" id="demoPlayer" data-video="B4OdJHehpyw">
+          <img src="https://img.youtube.com/vi/B4OdJHehpyw/maxresdefault.jpg" alt="AI Video Dubbing Demo - English to Japanese" loading="lazy" onerror="this.src='https://img.youtube.com/vi/B4OdJHehpyw/hqdefault.jpg'" />
+          <div class="portfolio-demo-overlay">
+            <div class="portfolio-demo-play-btn">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+            </div>
+            <div class="portfolio-demo-info">
+              <span class="portfolio-demo-badge" data-en="🎬 LIVE DEMO" data-vi="🎬 DEMO THỰC TẾ">🎬 LIVE DEMO</span>
+              <h3 data-en="AI Video Dubbing: English → Japanese" data-vi="AI Video Dubbing: Tiếng Anh → Tiếng Nhật">AI Video Dubbing: English → Japanese</h3>
+              <p data-en="Watch a real video translated with AI voice cloning and lip-sync technology" data-vi="Xem video thật được dịch bằng AI voice cloning và lip-sync">Watch a real video translated with AI voice cloning and lip-sync technology</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="portfolio-grid">
         <!-- Card 1: E-Learning -->
         <div class="portfolio-card reveal reveal-delay-1">
@@ -715,6 +732,15 @@
     </div>
     <span class="zalo-float-label" data-en="Chat now" data-vi="Chat ngay">Chat now</span>
   </a>
+
+  <!-- Video Modal -->
+  <div class="video-modal" id="videoModal">
+    <div class="video-modal-backdrop" id="videoModalClose"></div>
+    <div class="video-modal-content">
+      <button class="video-modal-close" id="videoModalCloseBtn" aria-label="Close">✕</button>
+      <div class="video-modal-player" id="videoModalPlayer"></div>
+    </div>
+  </div>
 
   <script src="js/calculator.js"></script>
   <script src="js/main.js"></script>

@@ -291,4 +291,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2000);
   }
 
+  // ============================================================
+  // VIDEO MODAL — Demo Player
+  // ============================================================
+  const videoModal = document.getElementById('videoModal');
+  const videoModalPlayer = document.getElementById('videoModalPlayer');
+  const demoPlayer = document.getElementById('demoPlayer');
+
+  function openVideoModal(videoId) {
+    if (!videoModal || !videoModalPlayer) return;
+    videoModalPlayer.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+    videoModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeVideoModal() {
+    if (!videoModal || !videoModalPlayer) return;
+    videoModal.classList.remove('active');
+    videoModalPlayer.innerHTML = '';
+    document.body.style.overflow = '';
+  }
+
+  if (demoPlayer) {
+    demoPlayer.addEventListener('click', () => {
+      openVideoModal(demoPlayer.dataset.video);
+    });
+  }
+
+  // Close modal on backdrop click or X button
+  document.getElementById('videoModalClose')?.addEventListener('click', closeVideoModal);
+  document.getElementById('videoModalCloseBtn')?.addEventListener('click', closeVideoModal);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeVideoModal();
+  });
+
 });
