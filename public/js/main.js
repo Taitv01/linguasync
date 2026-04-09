@@ -145,8 +145,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ============================================================
-  // CONTACT FORM
+  // CONTACT FORM — Dual Channel: Vercel API + Web3Forms
   // ============================================================
+  // 🔧 SETUP: Replace with your Web3Forms access key
+  // Get yours FREE at: https://web3forms.com (enter linguasync.dubbing@gmail.com)
+  const WEB3FORMS_KEY = '2496ee0b-a396-4d0a-8b3a-9a7c42226c7e';
+
   const contactForm = document.getElementById('contactForm');
   
   contactForm.addEventListener('submit', async (e) => {
@@ -159,46 +163,75 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.textContent = lang === 'vi' ? '⏳ Đang gửi...' : '⏳ Sending...';
     submitBtn.disabled = true;
 
-    try {
-      const payload = {
-        name: document.getElementById('contactName').value,
-        email: document.getElementById('contactEmail').value,
-        video_url: document.getElementById('contactVideoUrl').value,
-        target_languages: document.getElementById('contactLangs').value,
-        budget: document.getElementById('contactBudget').value,
-        message: document.getElementById('contactMessage').value,
-      };
+    const payload = {
+      name: document.getElementById('contactName').value,
+      email: document.getElementById('contactEmail').value,
+      video_url: document.getElementById('contactVideoUrl').value,
+      target_languages: document.getElementById('contactLangs').value,
+      budget: document.getElementById('contactBudget').value,
+      message: document.getElementById('contactMessage').value,
+    };
 
-      const response = await fetch('/api/contact', {
+    let success = false;
+
+    // Channel 1: Vercel API → Telegram notification
+    try {
+      const apiResponse = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      const apiResult = await apiResponse.json();
+      if (apiResponse.ok && apiResult.success) success = true;
+    } catch (err) {
+      console.warn('[Contact] Vercel API failed, trying Web3Forms...', err.message);
+    }
 
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        showToast(
-          lang === 'vi' 
-            ? '✅ Đã gửi thành công! Chúng tôi sẽ phản hồi trong 2 giờ.' 
-            : '✅ Sent successfully! We\'ll reply within 2 hours.', 
-          'success'
-        );
-        contactForm.reset();
-      } else {
-        throw new Error(result.error || 'Form submission failed');
+    // Channel 2: Web3Forms → Email notification (always send as backup)
+    if (WEB3FORMS_KEY !== 'YOUR_WEB3FORMS_KEY') {
+      try {
+        const web3Response = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            access_key: WEB3FORMS_KEY,
+            subject: `🎬 New LinguaSync Lead: ${payload.name}`,
+            from_name: 'LinguaSync Website',
+            name: payload.name,
+            email: payload.email,
+            video_url: payload.video_url || 'Not provided',
+            target_languages: payload.target_languages || 'Not specified',
+            budget: payload.budget || 'Not selected',
+            message: payload.message || 'No additional details',
+          }),
+        });
+        const web3Result = await web3Response.json();
+        if (web3Result.success) success = true;
+      } catch (err) {
+        console.warn('[Contact] Web3Forms also failed:', err.message);
       }
-    } catch (error) {
+    }
+
+    // Show result
+    if (success) {
       showToast(
         lang === 'vi' 
-          ? '❌ Gửi thất bại. Vui lòng email trực tiếp: hello@linguasync.io' 
-          : '❌ Failed to send. Please email directly: hello@linguasync.io', 
+          ? '✅ Đã gửi thành công! Chúng tôi sẽ phản hồi trong 2 giờ.' 
+          : '✅ Sent successfully! We\'ll reply within 2 hours.', 
+        'success'
+      );
+      contactForm.reset();
+    } else {
+      showToast(
+        lang === 'vi' 
+          ? '❌ Gửi thất bại. Vui lòng email trực tiếp: linguasync.dubbing@gmail.com' 
+          : '❌ Failed to send. Please email directly: linguasync.dubbing@gmail.com', 
         'error'
       );
-    } finally {
-      submitBtn.textContent = originalText;
-      submitBtn.disabled = false;
     }
+
+    submitBtn.textContent = originalText;
+    submitBtn.disabled = false;
   });
 
   // ============================================================
